@@ -2,9 +2,17 @@ extends KinematicBody
 
 
 # ------------------------------------------------------------------------------
+# Signals
+# ------------------------------------------------------------------------------
+signal flower_seeds_changed(amount)
+signal tree_seeds_changed(amount)
+
+# ------------------------------------------------------------------------------
 # Constants and ENUMs
 # ------------------------------------------------------------------------------
 const CAMERA_GROUP : String = "camera"
+const MAX_FLOWER_SEEDS : int = 5
+const MAX_TREE_SEEDS : int = 3
 
 enum STATE {Idle=0, Moving=1, Air=3, Jump=4}
 
@@ -26,6 +34,9 @@ var _gravity : float = 0.0
 var _jump_strength : float = 0.0
 
 var _state : int = STATE.Idle
+
+var _flower_seeds : int = 0
+var _tree_seeds : int = 0
 
 var _camera : Spatial = null
 var _ix : Array = [0.0, 0.0]
@@ -160,6 +171,34 @@ func _GetCurrentSpeed() -> float:
 	return v.length()
 
 # ------------------------------------------------------------------------------
+# Public Methods
+# ------------------------------------------------------------------------------
+
+func add_flower_seeds(amount : int) -> void:
+	_flower_seeds = max(0, min(MAX_FLOWER_SEEDS, _flower_seeds + amount))
+	emit_signal("flower_seeds_changed", _flower_seeds)
+
+func add_tree_seeds(amount : int) -> void:
+	_tree_seeds = max(0, min(MAX_TREE_SEEDS, _tree_seeds + amount))
+	emit_signal("tree_seeds_changed", _tree_seeds)
+
+# ------------------------------------------------------------------------------
 # Handler Methods
 # ------------------------------------------------------------------------------
 
+func _on_Collector_body_entered(body : Spatial) -> void:
+	var groups : Array = body.get_groups()
+	for group in groups:
+		group.begins_with("seeds_")
+		var parts = group.split("_")
+		if parts.size() == 3:
+			if ["flower", "tree"].find(parts[1]) >= 0 and parts[2].is_valid_integer():
+				var count : int = parts[1].to_int()
+				if count > 0:
+					match parts[1]:
+						"flower":
+							add_flower_seeds(count)
+						"tree":
+							add_tree_seeds(count)
+					body.queue_free()
+		

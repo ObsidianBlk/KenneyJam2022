@@ -28,7 +28,9 @@ const LEGS : Array = [
 # ------------------------------------------------------------------------------
 export var camera_group : String = ""							setget set_camera_group
 export var body_seed : int = 12345								setget set_body_seed
-export (float, 0.01, 1.0) var body_scale : float = 1.0
+export var start_as_adult : bool = false
+export var min_growth_time : float = 20.0
+export var max_growth_time : float = 55.0
 export var gravity : float = 9.8								setget set_gravity
 
 # ------------------------------------------------------------------------------
@@ -36,6 +38,10 @@ export var gravity : float = 9.8								setget set_gravity
 # ------------------------------------------------------------------------------
 var _rng : RandomNumberGenerator = null
 var _camera : Spatial = null
+
+var _sec_to_adult : float = 0.0
+var _max_leg_height : float = 0.0
+var _body_scale : float = 0.25
 
 var _velocity : Vector3 = Vector3.ZERO
 
@@ -58,12 +64,6 @@ func set_body_seed(s : int) -> void:
 		_rng = RandomNumberGenerator.new()
 	_rng.seed = body_seed
 
-func set_body_scale(s : float) -> void:
-	if s > 0.0 and s <= 1.0:
-		body_scale = s
-		if _body != null:
-			_body.scale = Vector3.ONE * body_scale
-
 func set_gravity(g : float) -> void:
 	if g > 0.0:
 		gravity = g
@@ -73,19 +73,11 @@ func set_gravity(g : float) -> void:
 # ------------------------------------------------------------------------------
 func _ready() -> void:
 	set_body_seed(body_seed)
-	set_body_scale(body_scale)
 	_BuildBody()
 
 func _physics_process(delta : float) -> void:
-	if _camera:
-		if _body != null:
-			if _camera.current == true:
-				_camera.view_camera(_body)
-			else:
-				_camera = null
-	else:
-		_FindCamera()
-	
+	_UpdateCameraFacing()
+	_ProcessGrowth(delta)
 	_velocity.y -= gravity * delta
 	_velocity = move_and_slide_with_snap(_velocity, Vector3.DOWN, Vector3.UP, true)
 
@@ -100,6 +92,26 @@ func _FindCamera() -> void:
 			if cnodes.size() > 0:
 				if cnodes[0].has_method("view_camera") and cnodes[0].current == true:
 					_camera = cnodes[0]
+
+func _UpdateCameraFacing() -> void:
+	if _camera:
+		if _body != null:
+			if _camera.current == true:
+				_camera.view_camera(_body)
+			else:
+				_camera = null
+	else:
+		_FindCamera()
+
+
+func _ProcessGrowth(delta : float) -> void:
+	if _body_scale < 1.0:
+		var growth : float = (0.75 / _sec_to_adult) * delta
+		_body_scale = min(1.0, _body_scale + growth)
+		_parts.scale = Vector3.ONE * _body_scale
+		_parts.translation.y = _max_leg_height * _body_scale
+
+
 
 func _AttachFlippable(itemlist : Array, idx : int, pos : Vector3, flip : bool = false) -> Spatial:
 	if flip:
@@ -130,8 +142,14 @@ func _BuildBody() -> void:
 	item = _AttachFlippable(LEGS, lidx, pos)
 	item = _AttachFlippable(LEGS, lidx, pos, true)
 	
-	var height : float = item.get_height_from_origin()
-	_parts.translation.y = height
+	_max_leg_height = item.get_height_from_origin()
+	_parts.translation.y = _max_leg_height * _body_scale
+	
+	if start_as_adult:
+		_body_scale = 1.0
+	else:
+		_sec_to_adult = min_growth_time + _rng.randf_range(0.0, max_growth_time - min_growth_time)
+
 
 # ------------------------------------------------------------------------------
 # Handler Methods
