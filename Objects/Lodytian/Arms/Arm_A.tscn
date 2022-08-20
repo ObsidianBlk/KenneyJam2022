@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Assets/Graphics/BodyParts/arm_whiteA.png" type="Texture" id=1]
+
+[node name="Arm_A" type="Spatial"]
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0904858, -0.380623, 0 )
+pixel_size = 0.003
+texture = ExtResource( 1 )
