@@ -57,7 +57,7 @@ surfaces/3 = {
 "vertex_count": 422
 }
 
-[node name="Flower" type="Spatial"]
+[node name="Flower" type="Spatial" groups=["flower"]]
 script = ExtResource( 4 )
 
 [node name="Model" type="MeshInstance" parent="."]

@@ -5,7 +5,11 @@ extends KinematicBody
 # Signals
 # ------------------------------------------------------------------------------
 signal flower_seeds_changed(amount)
+signal plant_flower(pos)
 signal tree_seeds_changed(amount)
+signal plant_tree(pos)
+signal planting_mode_changed(mode)
+signal pulse_heat(pos, heat)
 
 # ------------------------------------------------------------------------------
 # Constants and ENUMs
@@ -26,6 +30,8 @@ export var half_jump_dist : float = 2.0						setget set_half_jump_dist
 
 export var gravity_fall_mult : float = 2.0					setget set_gravity_fall_mult
 
+export var heat_per_second : float = 1000.0
+
 # ------------------------------------------------------------------------------
 # Variables
 # ------------------------------------------------------------------------------
@@ -37,6 +43,7 @@ var _state : int = STATE.Idle
 
 var _flower_seeds : int = 0
 var _tree_seeds : int = 0
+var _planting_mode : int = 0 # 0 = Flowers | 1 = Trees
 
 var _camera : Spatial = null
 var _ix : Array = [0.0, 0.0]
@@ -83,24 +90,44 @@ func _ready() -> void:
 	set_vis(vis)
 
 func _unhandled_input(event) -> void:
+	if event.is_action_pressed("toggle_seed"):
+		_planting_mode = 1 if _planting_mode == 0 else 0
+		match _planting_mode:
+			0: 
+				print("Flower Mode")
+			1:
+				print("Tree Mode")
+	
 	_HandleMoveEvents(event)
 	match _state:
-		STATE.Idle, STATE.Moving, STATE.Jump:
+		STATE.Idle, STATE.Moving:
 			_HandleJumpEvents(event)
+			_HandlePlantingEvents(event)
+		STATE.Jump:
+			_HandleJumpEvents(event)
+
 
 func _physics_process(delta : float) -> void:
 	_UpdateCameraFacing()
 	
 	_ProcessVelocity_v(delta)
 	_ProcessVelocity_h(delta)
-	#print(_velocity)
 	_velocity = move_and_slide_with_snap(_velocity, Vector3.DOWN * 0.01, Vector3.UP, false, 4, deg2rad(60.0))
 	_ProcessGroundState()
+	emit_signal("pulse_heat", (translation - Vector3(0.0, 0.9, 0.0)).floor(), heat_per_second * delta)
 
 
 # ------------------------------------------------------------------------------
 # Private Methods
 # ------------------------------------------------------------------------------
+func _FlattenedV(v : Vector3) -> Vector3:
+	return Vector3(
+		float(int(v.x)),
+		float(int(v.y)),
+		float(int(v.z))
+	)
+
+
 func _CalculateJumpVariables() -> void:
 	# NOTE: The idea for this came from...
 	# https://youtu.be/hG9SzQxaCm8
@@ -159,6 +186,18 @@ func _HandleJumpEvents(event : InputEvent) -> void:
 	elif event.is_action_released("jump") and _state == STATE.Jump:
 		_state = STATE.Air
 
+
+func _HandlePlantingEvents(event : InputEvent) -> void:
+	if event.is_action_pressed("plant"):
+		match _planting_mode:
+			0: # Flowers
+				if _flower_seeds > 0:
+					emit_signal("plant_flower", global_translation - Vector3(0.0, 0.9, 0.0))
+			1: # Trees
+				if _tree_seeds > 0:
+					emit_signal("plant_tree", global_translation - Vector3(0.0, 0.9, 0.0))
+
+
 func _FindCamera() -> void:
 	if is_inside_tree():
 		var cnodes = get_tree().get_nodes_in_group(CAMERA_GROUP)
@@ -193,7 +232,7 @@ func _on_Collector_body_entered(body : Spatial) -> void:
 		var parts = group.split("_")
 		if parts.size() == 3:
 			if ["flower", "tree"].find(parts[1]) >= 0 and parts[2].is_valid_integer():
-				var count : int = parts[1].to_int()
+				var count : int = parts[2].to_int()
 				if count > 0:
 					match parts[1]:
 						"flower":

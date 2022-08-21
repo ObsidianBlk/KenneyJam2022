@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://Objects/OrbitCamera/OrbitCamera.tscn" type="PackedScene" id=1]
-[ext_resource path="res://Objects/Tree/Tree.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Objects/SeedBox/TreeBox.tscn" type="PackedScene" id=2]
 [ext_resource path="res://World.gd" type="Script" id=3]
+[ext_resource path="res://Objects/SeedBox/FlowerBox.tscn" type="PackedScene" id=4]
 [ext_resource path="res://Objects/Player/Player.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Objects/GrowBlock/GrowBlock.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Objects/GrowMap/GrowMap.tscn" type="PackedScene" id=7]
@@ -19,28 +20,56 @@ target_path = NodePath("../Player")
 sensitivity = Vector2( 0.02, 0.02 )
 
 [node name="Player" parent="." instance=ExtResource( 5 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.238231, 1.1086, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 1.47553, 1.1086, 0.396515 )
 max_speed = 48.0
 max_jump_height = 0.75
 half_jump_dist = 32.0
 gravity_fall_mult = 1.6
 
+[node name="FlowerBox" parent="." instance=ExtResource( 4 )]
+transform = Transform( 0.902187, 0, -0.431346, 0, 1, 0, 0.431346, 0, 0.902187, -1.44993, 0.995791, 0.66278 )
+
+[node name="TreeBox" parent="." instance=ExtResource( 2 )]
+transform = Transform( 0.99671, 0, 0.0810513, 0.0069302, 0.996338, -0.0852226, -0.0807545, 0.0855039, 0.99306, 6.42268, 0.951467, 5.4278 )
+
 [node name="GrowMap" parent="." instance=ExtResource( 7 )]
 
 [node name="GrowBlock" parent="GrowMap" instance=ExtResource( 6 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0 )
-initial_block_state = 1
-static_state = true
-
-[node name="Tree" parent="GrowMap/GrowBlock" instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
-heat_per_second = 400.0
+immortal = true
 
 [node name="GrowBlock2" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0 )
 initial_block_state = 1
 static_state = true
 
-[node name="GrowBlock3" parent="GrowMap" instance=ExtResource( 6 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -1 )
+[node name="Ice1" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0 )
 initial_block_state = 2
 static_state = true
+
+[node name="Ice2" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -3 )
+initial_block_state = 2
+static_state = true
+
+[node name="Ice4" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -2 )
+initial_block_state = 2
+immortal = true
+
+[node name="Ice3" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 5 )
+initial_block_state = 2
+static_state = true
+
+[node name="GrowBlock4" parent="GrowMap" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 5 )
+initial_block_state = 2
+immortal = true
+
+[connection signal="plant_flower" from="Player" to="GrowMap" method="spawn_flower"]
+[connection signal="plant_tree" from="Player" to="GrowMap" method="spawn_tree"]
+[connection signal="pulse_heat" from="Player" to="GrowMap" method="heatup"]
+[connection signal="flower_planted" from="GrowMap" to="Player" method="add_flower_seeds" binds= [ -1 ]]
+[connection signal="tree_planted" from="GrowMap" to="Player" method="add_tree_seeds" binds= [ -1 ]]
